@@ -29,6 +29,15 @@
 #
 
 # Utility directories
+# ccache setup
+if command -v ccache &>/dev/null; then
+	export USE_CCACHE=1
+	export CCACHE_EXEC=$(which ccache)
+	CCACHE="ccache "
+else
+	CCACHE=""
+fi
+
 ORIGIN_DIR=$(pwd)
 CURRENT_BUILD_USER=$(whoami)
 
@@ -75,9 +84,8 @@ verify_toolchain() {
 
 		script_echo "I: Toolchain found at repository root"
 
-		cd ${TOOLCHAIN_EXT}
-		git pull
-		cd ${ORIGIN_DIR}
+		# Toolchain verified
+		:
 
 		export PATH="${TOOLCHAIN_EXT}/bin:$PATH"
 		export LD_LIBRARY_PATH="${TOOLCHAIN_EXT}/lib:$LD_LIBRARY_PATH"
@@ -217,8 +225,8 @@ build_kernel() {
 		make -C $(pwd) CC=${BUILD_PREF_COMPILER} LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip ${BUILD_DEVICE_TMP_CONFIG} LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
 		make -C $(pwd) CC=${BUILD_PREF_COMPILER} LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j$(nproc --all) LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
 	elif [[ ${BUILD_PREF_COMPILER_VERSION} == 'proton' ]]; then
-		make -C $(pwd) CC=${BUILD_PREF_COMPILER} HOSTCC=clang HOSTCXX=clang++ AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip ${BUILD_DEVICE_TMP_CONFIG} LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
-		make -C $(pwd) CC=${BUILD_PREF_COMPILER} HOSTCC=clang HOSTCXX=clang++ AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j$(nproc --all) LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
+		make -C $(pwd) CC="${CCACHE}${BUILD_PREF_COMPILER}" HOSTCC="${CCACHE}clang" HOSTCXX="${CCACHE}clang++" AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip ${BUILD_DEVICE_TMP_CONFIG} LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
+		make -C $(pwd) CC="${CCACHE}${BUILD_PREF_COMPILER}" HOSTCC="${CCACHE}clang" HOSTCXX="${CCACHE}clang++" AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j$(nproc --all) LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
 	elif [[ ${BUILD_PREF_COMPILER_VERSION} == 'google_snowcone' ]]; then
 		# google_snowcone (aka Clang 12 for Android) uses an additional 'LLVM=1' flag
 		make -C $(pwd) CC=${BUILD_PREF_COMPILER} LLVM=1 AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip ${BUILD_DEVICE_TMP_CONFIG} LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
@@ -334,15 +342,16 @@ if [[ ! -z ${BUILD_KERNEL_BRANCH} ]]; then
 		fi
 	fi
 else
+	SOVR_VERSION="v1.0"
 	if [[ ${BUILD_KERNEL_MAGISK} == 'true' ]]; then
-		FILE_OUTPUT=Mint-${BUILD_DATE}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_UB.zip
+		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_Magisk.zip
 	else
-		FILE_OUTPUT=Mint-${BUILD_DATE}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_UB.zip
+		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}.zip
 	fi
 
-	BUILD_KERNEL_BRANCH='user'
-	LOCALVERSION=" - Mint-user"
-	export LOCALVERSION=" - Mint-user"
+	BUILD_KERNEL_BRANCH='sovr'
+	LOCALVERSION=" - SOVR-${SOVR_VERSION}"
+	export LOCALVERSION=" - SOVR-${SOVR_VERSION}"
 fi
 }
 
@@ -387,6 +396,11 @@ build_package() {
 
 	zip -9 -r ./${FILE_OUTPUT} ./* 2>&1 | sed 's/^/     /'
 	mv ./${FILE_OUTPUT} ${BUILD_KERNEL_OUTPUT}
+	WIN_OUTPUT_DIR="/mnt/d/Kernels/SOVR A50"
+	if [[ -d "${WIN_OUTPUT_DIR}" ]]; then
+		script_echo "I: Copying ${FILE_OUTPUT} to Windows folder (${WIN_OUTPUT_DIR})..."
+		cp -f "${BUILD_KERNEL_OUTPUT}" "${WIN_OUTPUT_DIR}/${FILE_OUTPUT}"
+	fi
 	cd ${ORIGIN_DIR}
 }
 
