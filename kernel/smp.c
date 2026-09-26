@@ -13,6 +13,7 @@
 #include <linux/export.h>
 #include <linux/percpu.h>
 #include <linux/init.h>
+#include <linux/interrupt.h>
 #include <linux/gfp.h>
 #include <linux/smp.h>
 #include <linux/cpu.h>
@@ -123,7 +124,8 @@ static __always_inline void csd_lock(struct __call_single_data *csd)
 
 static __always_inline void csd_unlock(struct __call_single_data *csd)
 {
-	WARN_ON(!(csd->flags & CSD_FLAG_LOCK));
+	if (!(csd->flags & CSD_FLAG_LOCK))
+		return;
 
 	/*
 	 * ensure we're all done before releasing data:
@@ -133,12 +135,14 @@ static __always_inline void csd_unlock(struct __call_single_data *csd)
 
 static DEFINE_PER_CPU_SHARED_ALIGNED(call_single_data_t, csd_data);
 
+extern void send_call_function_single_ipi(int cpu);
+
 /*
  * Insert a previously allocated call_single_data_t element
  * for execution on the given CPU. data must already have
  * ->func, ->info, and ->flags set.
  */
-static int generic_exec_single(int cpu, struct __call_single_data *csd,
+int generic_exec_single(int cpu, struct __call_single_data *csd,
 			       smp_call_func_t func, void *info)
 {
 	if (cpu == smp_processor_id()) {
@@ -176,7 +180,7 @@ static int generic_exec_single(int cpu, struct __call_single_data *csd,
 	 * equipped to do the right thing...
 	 */
 	if (llist_add(&csd->llist, &per_cpu(call_single_queue, cpu)))
-		arch_send_call_function_single_ipi(cpu);
+		send_call_function_single_ipi(cpu);
 
 	return 0;
 }
@@ -238,6 +242,9 @@ static void flush_smp_call_function_queue(bool warn_cpu_offline)
 		smp_call_func_t func = csd->func;
 		void *info = csd->info;
 
+		/* This should be called by handle_IPI in smp.c */
+		dbg_snapshot_irq(DSS_FLAG_SMP_CALL_FN, func, NULL, 0, DSS_FLAG_IN);
+
 		/* Do we wait until *after* callback? */
 		if (csd->flags & CSD_FLAG_SYNCHRONOUS) {
 			func(info);
@@ -246,6 +253,8 @@ static void flush_smp_call_function_queue(bool warn_cpu_offline)
 			csd_unlock(csd);
 			func(info);
 		}
+
+		dbg_snapshot_irq(DSS_FLAG_SMP_CALL_FN, func, NULL, 0, DSS_FLAG_OUT);
 	}
 
 	/*
@@ -255,6 +264,21 @@ static void flush_smp_call_function_queue(bool warn_cpu_offline)
 	 * for them.
 	 */
 	irq_work_run();
+}
+
+void flush_smp_call_function_from_idle(void)
+{
+	unsigned long flags;
+
+	if (llist_empty(this_cpu_ptr(&call_single_queue)))
+		return;
+
+	local_irq_save(flags);
+	flush_smp_call_function_queue(true);
+	if (local_softirq_pending())
+		do_softirq();
+
+	local_irq_restore(flags);
 }
 
 /*
@@ -499,6 +523,8 @@ EXPORT_SYMBOL(smp_call_function);
 /* Setup configured maximum number of CPUs to activate */
 unsigned int setup_max_cpus = NR_CPUS;
 EXPORT_SYMBOL(setup_max_cpus);
+struct cpumask early_cpu_mask;
+EXPORT_SYMBOL(early_cpu_mask);
 
 
 /*
@@ -570,12 +596,16 @@ void __init smp_init(void)
 
 	pr_info("Bringing up secondary CPUs ...\n");
 
+	cpumask_clear(&early_cpu_mask);
+	cpumask_set_cpu(0, &early_cpu_mask);
 	/* FIXME: This should be done in userspace --RR */
 	for_each_present_cpu(cpu) {
 		if (num_online_cpus() >= setup_max_cpus)
 			break;
-		if (!cpu_online(cpu))
+		if (!cpu_online(cpu)) {
 			cpu_up(cpu);
+			cpumask_set_cpu(cpu, &early_cpu_mask);
+		}
 	}
 
 	num_nodes = num_online_nodes();
