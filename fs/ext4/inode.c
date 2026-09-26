@@ -421,8 +421,7 @@ static int __check_block_validity(struct inode *inode, const char *func,
 	     le32_to_cpu(EXT4_SB(inode->i_sb)->s_es->s_journal_inum)))
 		return 0;
 	if (!ext4_inode_block_valid(inode, map->m_pblk, map->m_len)) {
-		printk(KERN_ERR "printing inode..
-");
+		printk(KERN_ERR "printing inode..\n");
 		print_block_data(inode->i_sb, 0, (unsigned char *)inode, 0,
 				EXT4_INODE_SIZE(inode->i_sb));
 		ext4_error_inode(inode, func, line, map->m_pblk,
