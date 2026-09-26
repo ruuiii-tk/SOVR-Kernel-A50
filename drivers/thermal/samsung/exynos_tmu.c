@@ -1863,6 +1863,7 @@ static int exynos_tmu_probe(struct platform_device *pdev)
 
 	INIT_WORK(&data->irq_work, exynos_tmu_work);
 
+
 	/*
 	 * data->tzd must be registered before calling exynos_tmu_initialize(),
 	 * requesting irq and calling exynos_tmu_control().
