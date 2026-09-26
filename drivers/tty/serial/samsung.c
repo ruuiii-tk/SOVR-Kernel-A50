@@ -1599,8 +1599,7 @@ static int s3c24xx_serial_init_port(struct s3c24xx_uart_port *ourport,
 		ourport->check_separated_clk = 0;
 
 	if (of_property_read_u32(platdev->dev.of_node, "samsung,source-clock-rate", &ourport->src_clk_rate)){
-		dev_err(&platdev->dev, "No explicit src-clk. Use default src-clk
-");
+		dev_err(&platdev->dev, "No explicit src-clk. Use default src-clk\n");
 		ourport->src_clk_rate = DEFAULT_SOURCE_CLK;
 	}
 
