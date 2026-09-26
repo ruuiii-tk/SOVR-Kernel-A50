@@ -342,7 +342,7 @@ if [[ ! -z ${BUILD_KERNEL_BRANCH} ]]; then
 		fi
 	fi
 else
-	SOVR_VERSION="v2.1"
+	SOVR_VERSION="v2.2"
 	if [[ ${BUILD_KERNEL_MAGISK} == 'true' ]]; then
 		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_Magisk.zip
 	else
