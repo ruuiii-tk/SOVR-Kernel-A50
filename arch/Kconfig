@@ -352,7 +352,6 @@ config MMU_GATHER_NO_RANGE
 config MMU_GATHER_NO_GATHER
 	bool
 	depends on MMU_GATHER_TABLE_FREE
-
 config ARCH_WANT_IRQS_OFF_ACTIVATE_MM
 	bool
 	help
