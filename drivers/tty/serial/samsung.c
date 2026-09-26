@@ -1603,21 +1603,6 @@ static int s3c24xx_serial_init_port(struct s3c24xx_uart_port *ourport,
 		ourport->src_clk_rate = DEFAULT_SOURCE_CLK;
 	}
 
-	/*
-	 * DMA is currently supported only on DT platforms, if DMA properties
-	 * are specified.
-	 */
-	if (platdev->dev.of_node && of_find_property(platdev->dev.of_node,
-						     "dmas", NULL)) {
-		ourport->dma = devm_kzalloc(port->dev,
-					    sizeof(*ourport->dma),
-					    GFP_KERNEL);
-		if (!ourport->dma) {
-			ret = -ENOMEM;
-			goto err;
-		}
-	}
-
 	snprintf(clkname, sizeof(clkname), "ipclk_uart%d", ourport->port.line);
 	ourport->clk = devm_clk_get(&platdev->dev, clkname);
 	if (IS_ERR(ourport->clk)) {
