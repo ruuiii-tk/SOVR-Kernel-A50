@@ -496,7 +496,7 @@ KERNEL_BETA="$(file_getprop mint.prop ro.mint.droid.beta)";
 
 if [ -f banner ]; then
   ui_printfile banner;
-  ui_print "          Mint variant: $KERNEL_VARIANT";
+  ui_print "          SOVR variant: $KERNEL_VARIANT";
   ui_print "       Android version: Android $KERNEL_ANDROID";
   if [ "$KERNEL_BETA" == 'true' ]; then
     ui_print "           Base branch: $KERNEL_BRANCH";
@@ -527,9 +527,9 @@ KERNEL_BUILD="$(file_getprop mint.prop ro.mint.build.version)";
 KERNEL_DEVICE="$(file_getprop mint.prop ro.mint.droid.device)";
 
 if [ "$KERNEL_BETA" == 'true' ]; then
-  ui_print "- Installing Mint Kernel Beta - Build ${KERNEL_BUILD}";
+  ui_print "- Installing SOVR Kernel Beta - Build ${KERNEL_BUILD}";
 else
-  ui_print "- Installing Mint Kernel Stable - v$KERNEL_BUILD";
+  ui_print "- Installing SOVR Kernel - $KERNEL_BUILD";
 fi
 
 ui_print "  for the Galaxy $KERNEL_DEVICE...";
