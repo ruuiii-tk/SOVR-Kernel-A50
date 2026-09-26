@@ -72,9 +72,7 @@
 #include <asm/futex.h>
 
 #include "locking/rtmutex_common.h"
-#ifdef CONFIG_FAST_TRACK
-#include <cpu/ftt/ftt.h>
-#endif
+
 /*
  * READ this before attempting to hack on futexes!
  *
@@ -526,36 +524,6 @@ static u64 get_inode_sequence_number(struct inode *inode)
 			return old;
 		return new;
 	}
-}
-
-/**
- * futex_setup_timer - set up the sleeping hrtimer.
- * @time:	ptr to the given timeout value
- * @timeout:	the hrtimer_sleeper structure to be set up
- * @flags:	futex flags
- * @range_ns:	optional range in ns
- *
- * Return: Initialized hrtimer_sleeper structure or NULL if no timeout
- *	   value given
- */
-static inline struct hrtimer_sleeper *
-futex_setup_timer(ktime_t *time, struct hrtimer_sleeper *timeout,
-		  int flags, u64 range_ns)
-{
-	if (!time)
-		return NULL;
-
-	hrtimer_init_sleeper_on_stack(timeout, (flags & FLAGS_CLOCKRT) ?
-			      CLOCK_REALTIME : CLOCK_MONOTONIC,
-			      HRTIMER_MODE_ABS);
-
-	/*
-	 * If range_ns is 0, calling hrtimer_set_expires_range_ns() is
-	 * effectively the same as calling hrtimer_set_expires().
-	 */
-	hrtimer_set_expires_range_ns(&timeout->timer, *time, range_ns);
-
-	return timeout;
 }
 
 /**
@@ -2398,15 +2366,8 @@ static inline void __queue_me(struct futex_q *q, struct futex_hash_bucket *hb)
 	 * Thus, all RT-threads are woken first in priority order, and
 	 * the others are woken last, in FIFO order.
 	 */
-#ifndef CONFIG_FAST_TRACK
 	prio = min(current->normal_prio, MAX_RT_PRIO);
-#else
-	if (is_ftt(&current->se)) {
-		prio = current->normal_prio;
-	} else {
-		prio = DEFAULT_PRIO;
-	}
-#endif
+
 	plist_node_init(&q->list, prio);
 	plist_add(&q->list, &hb->chain);
 	q->task = current;
@@ -2860,7 +2821,7 @@ out:
 static int futex_wait(u32 __user *uaddr, unsigned int flags, u32 val,
 		      ktime_t *abs_time, u32 bitset)
 {
-	struct hrtimer_sleeper timeout, *to;
+	struct hrtimer_sleeper timeout, *to = NULL;
 	struct restart_block *restart;
 	struct futex_hash_bucket *hb;
 	struct futex_q q = futex_q_init;
@@ -2870,8 +2831,17 @@ static int futex_wait(u32 __user *uaddr, unsigned int flags, u32 val,
 		return -EINVAL;
 	q.bitset = bitset;
 
-	to = futex_setup_timer(abs_time, &timeout, flags,
-			       current->timer_slack_ns);
+	if (abs_time) {
+		to = &timeout;
+
+		hrtimer_init_on_stack(&to->timer, (flags & FLAGS_CLOCKRT) ?
+				      CLOCK_REALTIME : CLOCK_MONOTONIC,
+				      HRTIMER_MODE_ABS);
+		hrtimer_init_sleeper(to, current);
+		hrtimer_set_expires_range_ns(&to->timer, *abs_time,
+					     current->timer_slack_ns);
+	}
+
 retry:
 	/*
 	 * Prepare to wait on uaddr. On success, holds hb lock and increments
@@ -2952,7 +2922,6 @@ static int futex_lock_pi(u32 __user *uaddr, unsigned int flags,
 			 ktime_t *time, int trylock)
 {
 	struct hrtimer_sleeper timeout, *to = NULL;
-	struct futex_pi_state *pi_state = NULL;
 	struct task_struct *exiting = NULL;
 	struct rt_mutex_waiter rt_waiter;
 	struct futex_hash_bucket *hb;
@@ -2965,7 +2934,13 @@ static int futex_lock_pi(u32 __user *uaddr, unsigned int flags,
 	if (refill_pi_state_cache())
 		return -ENOMEM;
 
-	to = futex_setup_timer(time, &timeout, FLAGS_CLOCKRT, 0);
+	if (time) {
+		to = &timeout;
+		hrtimer_init_on_stack(&to->timer, CLOCK_REALTIME,
+				      HRTIMER_MODE_ABS);
+		hrtimer_init_sleeper(to, current);
+		hrtimer_set_expires(&to->timer, *time);
+	}
 
 retry:
 	ret = get_futex_key(uaddr, flags & FLAGS_SHARED, &q.key, VERIFY_WRITE);
@@ -3357,7 +3332,6 @@ static int futex_wait_requeue_pi(u32 __user *uaddr, unsigned int flags,
 				 u32 __user *uaddr2)
 {
 	struct hrtimer_sleeper timeout, *to = NULL;
-	struct futex_pi_state *pi_state = NULL;
 	struct rt_mutex_waiter rt_waiter;
 	struct futex_hash_bucket *hb;
 	union futex_key key2 = FUTEX_KEY_INIT;
@@ -3373,8 +3347,15 @@ static int futex_wait_requeue_pi(u32 __user *uaddr, unsigned int flags,
 	if (!bitset)
 		return -EINVAL;
 
-	to = futex_setup_timer(abs_time, &timeout, flags,
-			       current->timer_slack_ns);
+	if (abs_time) {
+		to = &timeout;
+		hrtimer_init_on_stack(&to->timer, (flags & FLAGS_CLOCKRT) ?
+				      CLOCK_REALTIME : CLOCK_MONOTONIC,
+				      HRTIMER_MODE_ABS);
+		hrtimer_init_sleeper(to, current);
+		hrtimer_set_expires_range_ns(&to->timer, *abs_time,
+					     current->timer_slack_ns);
+	}
 
 	/*
 	 * The waiter is allocated on our stack, manipulated by the requeue
