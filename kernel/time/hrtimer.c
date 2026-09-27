@@ -1201,9 +1201,6 @@ int hrtimer_try_to_cancel(struct hrtimer *timer)
 	if (!hrtimer_active(timer))
 		return 0;
 
-	if (WARN_ON_ONCE(!timer->function))
-		return;
-
 	base = lock_hrtimer_base(timer, &flags);
 
 	if (!hrtimer_callback_running(timer))
