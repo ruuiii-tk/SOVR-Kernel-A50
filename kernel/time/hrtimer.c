@@ -1163,6 +1163,9 @@ void hrtimer_start_range_ns(struct hrtimer *timer, ktime_t tim,
 	else
 		WARN_ON_ONCE(!(mode & HRTIMER_MODE_HARD) ^ !timer->is_hard);
 
+	if (WARN_ON_ONCE(!timer->function))
+		return;
+
 	base = lock_hrtimer_base(timer, &flags);
 
 	if (__hrtimer_start_range_ns(timer, tim, delta_ns, mode, base))
@@ -1197,6 +1200,9 @@ int hrtimer_try_to_cancel(struct hrtimer *timer)
 	 */
 	if (!hrtimer_active(timer))
 		return 0;
+
+	if (WARN_ON_ONCE(!timer->function))
+		return;
 
 	base = lock_hrtimer_base(timer, &flags);
 
