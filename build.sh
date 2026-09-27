@@ -160,6 +160,7 @@ show_usage() {
 	script_echo "-v, --variant <variant>   Set build variant to build the kernel for. Required."
 	script_echo " "
 	script_echo "-n, --no-clean            Do not clean and update Magisk before build."
+	script_echo "-k, --ksu                 Enable KernelSU (v0.9.5) native kernel root."
 	script_echo "-m, --magisk [canary]     Pre-root the kernel with Magisk. Optional flag to use canary builds."
 	script_echo "                          Not available for 'recovery' variant."
 	script_echo "-p, --permissive          Build kernel with SELinux fully permissive. NOT RECOMMENDED!"
@@ -342,16 +343,20 @@ if [[ ! -z ${BUILD_KERNEL_BRANCH} ]]; then
 		fi
 	fi
 else
-	SOVR_VERSION="v3.1"
-	if [[ ${BUILD_KERNEL_MAGISK} == 'true' ]]; then
+	SOVR_VERSION="v3.2"
+	if [[ ${BUILD_KERNEL_KSU} == 'true' ]]; then
+		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_KSU.zip
+		LOCALVERSION=" - SOVR-${SOVR_VERSION}-KSU"
+	elif [[ ${BUILD_KERNEL_MAGISK} == 'true' ]]; then
 		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_Magisk.zip
+		LOCALVERSION=" - SOVR-${SOVR_VERSION}-Magisk"
 	else
 		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}.zip
+		LOCALVERSION=" - SOVR-${SOVR_VERSION}"
 	fi
 
 	BUILD_KERNEL_BRANCH='sovr'
-	LOCALVERSION=" - SOVR-${SOVR_VERSION}"
-	export LOCALVERSION=" - SOVR-${SOVR_VERSION}"
+	export LOCALVERSION="${LOCALVERSION}"
 fi
 }
 
@@ -451,6 +456,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -n|--no-clean)
       BUILD_KERNEL_DIRTY='true'
+      shift
+      ;;
+    -k|--ksu)
+      BUILD_KERNEL_KSU='true'
       shift
       ;;
     -m|--magisk)
@@ -598,6 +607,13 @@ get_devicedb_info
 merge_config partial-deknox-${BUILD_ANDROID_PLATFORM}
 merge_config mali-${BUILD_ANDROID_PLATFORM}
 merge_config variant_${BUILD_KERNEL_CODE}
+
+if [[ ${BUILD_KERNEL_KSU} == 'true' ]]; then
+	script_echo "I: Injecting CONFIG_KSU=y into defconfig..."
+	echo "CONFIG_KSU=y" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
+else
+	echo "# CONFIG_KSU is not set" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
+fi
 
 if [[ ${BUILD_KERNEL_PERMISSIVE} == 'true' ]]; then
 	script_echo "WARNING! You're building this kernel in permissive mode!"

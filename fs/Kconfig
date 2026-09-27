@@ -8,6 +8,14 @@ menu "File systems"
 config DCACHE_WORD_ACCESS
        bool
 
+config DYNAMIC_FSYNC
+	bool "Dynamic Fsync 2.0"
+	default y
+	help
+	  Dynamic Fsync disables synchronous filesystem commits while the
+	  screen is active for maximum interactive performance and zero UI
+	  lag, and automatically flushes dirty pages upon screen blanking.
+
 config INTERRUPTIBLE_SYNC
         bool "Support interruptible sync for Samsung Mobile Device"
 	default y
