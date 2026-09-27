@@ -1285,6 +1285,7 @@ int gether_register_netdev(struct net_device *net)
 {
 	struct eth_dev *dev;
 	struct usb_gadget *g;
+	struct sockaddr sa;
 	int status;
 
 	if (!net->dev.parent)
