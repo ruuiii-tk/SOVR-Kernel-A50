@@ -343,7 +343,7 @@ if [[ ! -z ${BUILD_KERNEL_BRANCH} ]]; then
 		fi
 	fi
 else
-	SOVR_VERSION="v3.2"
+	SOVR_VERSION="v3.3"
 	if [[ ${BUILD_KERNEL_KSU} == 'true' ]]; then
 		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_KSU.zip
 		LOCALVERSION=" - SOVR-${SOVR_VERSION}-KSU"
@@ -611,8 +611,12 @@ merge_config variant_${BUILD_KERNEL_CODE}
 if [[ ${BUILD_KERNEL_KSU} == 'true' ]]; then
 	script_echo "I: Injecting CONFIG_KSU=y into defconfig..."
 	echo "CONFIG_KSU=y" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
+	echo "CONFIG_KSU_MANUAL_HOOK=y" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
+	echo "# CONFIG_KSU_KPROBES_HOOK is not set" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
 else
 	echo "# CONFIG_KSU is not set" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
+	echo "# CONFIG_KSU_MANUAL_HOOK is not set" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
+	echo "# CONFIG_KSU_KPROBES_HOOK is not set" >> "${BUILD_CONFIG_DIR}/${BUILD_DEVICE_TMP_CONFIG}"
 fi
 
 if [[ ${BUILD_KERNEL_PERMISSIVE} == 'true' ]]; then

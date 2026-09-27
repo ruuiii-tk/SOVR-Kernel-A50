@@ -30,10 +30,40 @@ on init
     chmod 0644 /sys/devices/system/cpu/cpufreq/policy0/schedutil/iowait_boost_enable
     chmod 0644 /sys/devices/system/cpu/cpufreq/policy4/schedutil/iowait_boost_enable
     chmod 0644 /proc/irq/default_smp_affinity
+    chown system system /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us
+    chown system system /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us
+    chown system system /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us
+    chown system system /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us
+    chown system system /sys/devices/system/cpu/cpufreq/policy0/energy_adaptive/up_rate_limit_us
+    chown system system /sys/devices/system/cpu/cpufreq/policy0/energy_adaptive/down_rate_limit_us
+    chown system system /sys/devices/system/cpu/cpufreq/policy4/energy_adaptive/up_rate_limit_us
+    chown system system /sys/devices/system/cpu/cpufreq/policy4/energy_adaptive/down_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy0/energy_adaptive/up_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy0/energy_adaptive/down_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy4/energy_adaptive/up_rate_limit_us
+    chmod 0644 /sys/devices/system/cpu/cpufreq/policy4/energy_adaptive/down_rate_limit_us
 
 on property:sys.boot_completed=1
     # Fresh Performance Kit version
     setprop persist.sys.zest.perf_version 14.2.1.3
+
+    # Schedutil & Energy Adaptive rate limits (500us up, 2000us down)
+    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/up_rate_limit_us 500
+    write /sys/devices/system/cpu/cpufreq/policy0/schedutil/down_rate_limit_us 2000
+    write /sys/devices/system/cpu/cpufreq/policy4/schedutil/up_rate_limit_us 500
+    write /sys/devices/system/cpu/cpufreq/policy4/schedutil/down_rate_limit_us 2000
+    write /sys/devices/system/cpu/cpufreq/policy0/energy_adaptive/up_rate_limit_us 500
+    write /sys/devices/system/cpu/cpufreq/policy0/energy_adaptive/down_rate_limit_us 2000
+    write /sys/devices/system/cpu/cpufreq/policy4/energy_adaptive/up_rate_limit_us 500
+    write /sys/devices/system/cpu/cpufreq/policy4/energy_adaptive/down_rate_limit_us 2000
+
+    # Storage read-ahead & Multi-Gen LRU
+    write /sys/block/sda/queue/read_ahead_kb 512
+    write /sys/kernel/mm/lru_gen/min_ttl_ms 1000
 
     # Setup runtime blkio
     write /dev/blkio/blkio.weight 1000
