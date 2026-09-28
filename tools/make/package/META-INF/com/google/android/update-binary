@@ -319,7 +319,7 @@ do_versioncheck() {
     ui_print "    - Android $android_ver";
   else
     ui_print "    - Warning: Android version doesn't match supported version!";
-    ui_print "      Make sure you have downloaded the correct version of Mint.";
+    ui_print "      Make sure you have downloaded the correct version of SOVR.";
     ui_print "      Proceeding to install...";
   fi;
 }
@@ -344,7 +344,7 @@ do_variantcheck() {
   if [ "$supported" ]; then
     ui_print "    - Your current ROM is: ${platform}";
   else
-    ui_print "    - Error: This Mint build is for ${kernel_platform}!";
+    ui_print "    - Error: This SOVR build is for ${kernel_platform}!";
     ui_print "      Your current ROM is: ${platform}" " ";
     ui_print "      Check if you have downloaded the correct";
     ui_print "      version for the ROM you have installed." " ";
