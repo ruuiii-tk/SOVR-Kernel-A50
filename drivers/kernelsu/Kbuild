@@ -79,8 +79,8 @@ endif
 endif
 
 # Calculate version if git version is available
-KSU_VERSION := 32601
-KSU_VERSION_TAG := v3.3.0
+KSU_VERSION := 33294
+KSU_VERSION_TAG := v3.4.0
 $(info -- KernelSU-Next version: $(KSU_VERSION))
 $(info -- KernelSU-Next tag: $(KSU_VERSION_TAG))
 ccflags-y += -DKSU_VERSION=$(KSU_VERSION)

@@ -137,6 +137,7 @@ ccflags-y += \
     -I$(src)/../../../base \
     -I$(src)/../../../../include
 
+ccflags-y += -Wno-strict-prototypes
 subdir-ccflags-y += $(ccflags-y)
 
 #

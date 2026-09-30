@@ -1,3 +1,4 @@
+subdir-ccflags-y += -Wno-strict-prototypes
 #
 # Makefile for the sensor hub drivers.
 #

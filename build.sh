@@ -76,7 +76,17 @@ verify_toolchain() {
 	sleep 2
 	script_echo " "
 
-	if [[ -d "${TOOLCHAIN}" ]]; then
+	if [[ ${BUILD_PREF_COMPILER_VERSION} == 'aosp_17' || ${BUILD_PREF_COMPILER_VERSION} == 'aosp' ]]; then
+		AOSP_CLANG="$HOME/toolchains/clang-r487747c"
+		if [[ -d "${AOSP_CLANG}" ]]; then
+			script_echo "I: Using AOSP Clang 17 toolchain from ${AOSP_CLANG}"
+			export PATH="${AOSP_CLANG}/bin:${TOOLCHAIN_EXT}/bin:$PATH"
+			export LD_LIBRARY_PATH="${AOSP_CLANG}/lib:${TOOLCHAIN_EXT}/lib:$LD_LIBRARY_PATH"
+		else
+			script_echo "E: AOSP Clang 17 not found at ${AOSP_CLANG}!"
+			exit_script
+		fi
+	elif [[ -d "${TOOLCHAIN}" ]]; then
 		script_echo "I: Toolchain found at default location"
 		export PATH="${TOOLCHAIN}/bin:$PATH"
 		export LD_LIBRARY_PATH="${TOOLCHAIN}/lib:$LD_LIBRARY_PATH"
@@ -222,7 +232,10 @@ build_kernel() {
 	sleep 3
 	script_echo " "
 
-	if [[ ${BUILD_PREF_COMPILER_VERSION} == 'rui' ]]; then
+	if [[ ${BUILD_PREF_COMPILER_VERSION} == 'aosp_17' || ${BUILD_PREF_COMPILER_VERSION} == 'aosp' ]]; then
+		make -C $(pwd) CC="${CCACHE}${BUILD_PREF_COMPILER}" HOSTCC="${CCACHE}clang" HOSTCXX="${CCACHE}clang++" AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip ${BUILD_DEVICE_TMP_CONFIG} LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
+		make -C $(pwd) CC="${CCACHE}${BUILD_PREF_COMPILER}" HOSTCC="${CCACHE}clang" HOSTCXX="${CCACHE}clang++" AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j$(nproc --all) LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
+	elif [[ ${BUILD_PREF_COMPILER_VERSION} == 'rui' ]]; then
 		make -C $(pwd) CC=${BUILD_PREF_COMPILER} LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip ${BUILD_DEVICE_TMP_CONFIG} LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
 		make -C $(pwd) CC=${BUILD_PREF_COMPILER} LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip -j$(nproc --all) LOCALVERSION="${LOCALVERSION}" 2>&1 | sed 's/^/     /'
 	elif [[ ${BUILD_PREF_COMPILER_VERSION} == 'proton' ]]; then
@@ -343,7 +356,7 @@ if [[ ! -z ${BUILD_KERNEL_BRANCH} ]]; then
 		fi
 	fi
 else
-	SOVR_VERSION="v3.3"
+	SOVR_VERSION="v3.5"
 	if [[ ${BUILD_KERNEL_KSU} == 'true' ]]; then
 		FILE_OUTPUT=SOVR-Kernel-${SOVR_VERSION}.A${BUILD_ANDROID_PLATFORM}_${FILE_KERNEL_CODE}${ZIP_ONEUI_VERSION}_${BUILD_DEVICE_NAME^}_KSU.zip
 		LOCALVERSION=" - SOVR-${SOVR_VERSION}-KSU"
@@ -387,7 +400,7 @@ build_package() {
 	fi
 	
 	echo "ro.mint.droid.android=${BUILD_ANDROID_PLATFORM}" >> $(pwd)/tools/make/package/mint.prop
-	echo "ro.mint.droid.platform=11-${BUILD_ANDROID_PLATFORM}" >> $(pwd)/tools/make/package/mint.prop
+	echo "ro.mint.droid.platform=11-16" >> $(pwd)/tools/make/package/mint.prop
 
 	# Device support
 	echo "ro.mint.device.name1=${BUILD_DEVICE_NAME}" >> $(pwd)/tools/make/package/mint.prop
@@ -478,6 +491,10 @@ while [[ $# -gt 0 ]]; do
     -p|--permissive)
       BUILD_KERNEL_PERMISSIVE='true'
       shift
+      ;;
+    -t|--toolchain)
+      BUILD_PREF_COMPILER_VERSION=`echo ${2} | tr 'A-Z' 'a-z'`
+      shift; shift
       ;;
     -h|--help)
       SCRIPT_SHOW_HELP='true'

@@ -245,22 +245,22 @@ void mali_exynos_coherency_reg_map()
 	gpexbe_llc_coherency_reg_map();
 }
 
-void mali_exynos_coherency_reg_unmap()
+void mali_exynos_coherency_reg_unmap(void)
 {
 	gpexbe_llc_coherency_reg_unmap();
 }
 
-void mali_exynos_coherency_set_coherency_feature()
+void mali_exynos_coherency_set_coherency_feature(void)
 {
 	gpexbe_llc_coherency_set_coherency_feature();
 }
 
-void mali_exynos_llc_set_aruser()
+void mali_exynos_llc_set_aruser(void)
 {
 	gpexbe_llc_coherency_set_aruser();
 }
 
-void mali_exynos_llc_set_awuser()
+void mali_exynos_llc_set_awuser(void)
 {
 	gpexbe_llc_coherency_set_awuser();
 }

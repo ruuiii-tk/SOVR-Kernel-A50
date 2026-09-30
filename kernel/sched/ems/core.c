@@ -1305,7 +1305,7 @@ out:
 	return target_cpu;
 }
 
-int __init core_init()
+int __init core_init(void)
 {
 	tex_init();
 	prefer_cpu_init();
